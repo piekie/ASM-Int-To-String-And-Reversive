@@ -14,6 +14,8 @@ firstNum db ?
 secondNum db ?
 end_of_string db '$'
 
+firstNumInt dd ?
+
 .code
 
 ; interruptions:
@@ -48,6 +50,7 @@ inp:
 	
 	cmp al, 0dh
 	jnz inp
+
 ;inp
 
 	call NewLine
@@ -55,12 +58,13 @@ inp:
 	; end of string routine
 	mov byte ptr [si], '$'
 	
-	; writing out the string
-	mov ah, 09h
-	mov dx, offset firstNum
-	int 21h
+	mov edx, offset firstNum
+	; after executing of next line number as int must be in eax
+	call StringToNumber
 	
-	call NewLine
+	mov firstNumInt, eax
+	
+	call PrintNumber
 	
 	; deinitial routine
 	call WaitForKeypress
@@ -75,7 +79,7 @@ inp:
 		mov ah, 09h
 		int 21h
 		ret
-	endp
+	NewLine endp
 	
 	WaitForKeypress proc
 		mov ah,00       ;  Function To Read Character
@@ -85,11 +89,7 @@ inp:
 		mov al,00
 		int 21h
 		ret
-	endp
-	
-	PrintNumber proc
-		
-	endp
+	WaitForKeypress endp
 	
 	StringToNumber proc
 		xor eax, eax ; zero a "result so far"
@@ -110,6 +110,31 @@ inp:
 		
 		.done:
 			ret
-	endp
+	StringToNumber endp
+	
+	PrintNumber proc
+		mov cx, 0
+		mov ebx, 10
+		
+	.loopr:
+		xor edx, edx
+		div ebx
+		add dl, '0'
+		push dx 
+		
+		inc cx
+		cmp eax, 0
+		jnz .loopr
+		
+	.print:
+		pop dx
+		mov ah, 2h
+		int 21h
+		
+		dec cx
+		jnz .print
+
+		ret
+	PrintNumber endp
 
 end start
