@@ -4,8 +4,10 @@
 .data 
 
 ;strings
+prompt_enter_string db "Please enter a number", "$"
+prompt_this_a_string db "This is your string", "$"
+prompt_this_a_number db "This is your number", "$"
 
-string_prompt db "Please enter a number", "$"
 char_newline db 10, "$"
 char_carriage_return db 13, "$"
 
@@ -32,9 +34,10 @@ start:
 	
 	; printing out the prompt
 	mov ah, 09h
-	mov dx, offset string_prompt
+	mov dx, offset prompt_enter_string
 	int 21h
 	
+	call NewLine
 	call NewLine
 	
 	;firstNum
@@ -53,16 +56,35 @@ inp:
 
 ;inp
 
-	call NewLine
-
 	; end of string routine
 	mov byte ptr [si], '$'
 	
-	mov edx, offset firstNum
+	call NewLine
+	call NewLine
+	
+	mov ah, 09h
+	
+	mov dx, offset prompt_this_a_string
+	int 21h
+	
+	call NewLine
+	call NewLine
+	
+	mov dx, offset firstNum
+	int 21h
+	
+	call NewLine
+	call NewLine
+	
+	mov dx, offset prompt_this_a_number
+	int 21h
+	
+	call NewLine
+	call NewLine
+	
+	mov esi, offset firstNum
 	; after executing of next line number as int must be in eax
 	call StringToNumber
-	
-	mov firstNumInt, eax
 	
 	call PrintNumber
 	
@@ -92,23 +114,46 @@ inp:
 	WaitForKeypress endp
 	
 	StringToNumber proc
-		xor eax, eax ; zero a "result so far"
-		
-		.top:
-			movzx ecx, byte [edx] ; get a character
-			inc edx ; ready for next one
-			cmp ecx, '0' ; valid?
+			xor eax, eax ; zero a "result so far"
 			
-			jb .done
-			cmp ecx, '9'
-			ja .done
+			cmp byte ptr [esi], '-'
+			je .negative
+			mov ch, 0
+			jmp .convert
 			
-			sub ecx, '0' ; "convert" character to number
-			imul eax, 10 ; multiply "result so far" by ten
-			add eax, ecx ; add in current digit
-			jmp .top ; until done
-		
+		.negative:
+			mov ch, 1
+			inc esi
+			
+		.convert:
+			mov al, [esi]
+			sub al, 48
+			
+			movzx eax, al
+			mov ebx, 10
+			
+		.next: 
+			inc esi
+			cmp byte ptr[esi], '$'
+			je .done
+			
+			mul ebx
+			mov dl, [esi]
+			sub dl, 48
+			movzx edx, dl
+			
+			add eax, edx
+			jmp .next
+			
 		.done:
+			cmp ch, 1
+			je .negativize
+			jmp .return
+			
+		.negativize:
+			neg eax
+		
+		.return:
 			ret
 	StringToNumber endp
 	
