@@ -3,20 +3,20 @@
 
 .data 
 
-;strings
-prompt_enter_string db "Please enter a number", "$"
-prompt_this_a_string db "This is your string", "$"
-prompt_this_a_number db "This is your number", "$"
+	;strings
+	prompt_enter_string db "Please enter a number", "$"
+	prompt_this_a_string db "This is your string", "$"
+	prompt_this_a_number db "This is your number", "$"
 
-char_newline db 10, "$"
-char_carriage_return db 13, "$"
+	char_newline db 10, "$"
+	char_carriage_return db 13, "$"
+	char_minus db "-", "$"
 
-;util
-firstNum db ?
-secondNum db ?
-end_of_string db '$'
+	;util
+	firstNum db ?
+	end_of_string db '$'
 
-firstNumInt dd ?
+	firstNumInt dd ?
 
 .code
 
@@ -85,11 +85,28 @@ inp:
 	mov esi, offset firstNum
 	; after executing of next line number as int must be in eax
 	call StringToNumber
+		
+	mov firstNumInt, eax
+	sub firstNumInt, 221
 	
-	call PrintNumber
+	cmp ch, 1
+	je .printMinus
+	jmp .goNext
 	
-	; deinitial routine
-	call WaitForKeypress
+	.printMinus:
+		
+		mov ah, 09h
+		mov dx, offset char_minus
+		int 21h
+			
+	.goNext:
+		
+		mov eax, firstNumInt
+	
+		call PrintNumber
+		
+		; deinitial routine
+		call WaitForKeypress
 	
 	
 	NewLine proc
@@ -104,17 +121,18 @@ inp:
 	NewLine endp
 	
 	WaitForKeypress proc
-		mov ah,00       ;  Function To Read Character
+		mov ah, 00      
 		int 16h
     
-		mov ah,4ch      ; Terminate and return to dos
-		mov al,00
+		mov ah, 4ch    
+		mov al, 00
 		int 21h
 		ret
 	WaitForKeypress endp
-	
+		
 	StringToNumber proc
 			xor eax, eax ; zero a "result so far"
+			xor edx, edx
 			
 			cmp byte ptr [esi], '-'
 			je .negative
@@ -127,7 +145,7 @@ inp:
 			
 		.convert:
 			mov al, [esi]
-			sub al, 48
+			sub al, '0'
 			
 			movzx eax, al
 			mov ebx, 10
@@ -136,24 +154,17 @@ inp:
 			inc esi
 			cmp byte ptr[esi], '$'
 			je .done
-			
+		
 			mul ebx
 			mov dl, [esi]
-			sub dl, 48
-			movzx edx, dl
+			sub dl, '0'
+			
+			movzx edx, dl			
 			
 			add eax, edx
 			jmp .next
 			
 		.done:
-			cmp ch, 1
-			je .negativize
-			jmp .return
-			
-		.negativize:
-			neg eax
-		
-		.return:
 			ret
 	StringToNumber endp
 	
@@ -163,6 +174,7 @@ inp:
 		
 	.loopr:
 		xor edx, edx
+		
 		div ebx
 		add dl, '0'
 		push dx 
@@ -170,10 +182,11 @@ inp:
 		inc cx
 		cmp eax, 0
 		jnz .loopr
+	
+		mov ah, 2h
 		
 	.print:
 		pop dx
-		mov ah, 2h
 		int 21h
 		
 		dec cx
