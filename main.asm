@@ -13,9 +13,9 @@
 	char_carriage_return db 13, "$"
 	char_minus db "-", "$"
 
-	;util
-	firstNum db ?
-	firstNumInt dd ?
+	;variables
+	string_input db ?
+	integer_value dd ?
 
 .code
 
@@ -40,7 +40,7 @@ start:
 	
 	;firstNum
 	
-	lea si, firstNum
+	lea si, string_input
 	
 inp:
 	mov ah, 01h
@@ -68,7 +68,7 @@ inp:
 	call NewLine
 	call NewLine
 	
-	mov dx, offset firstNum
+	mov dx, offset string_input
 	int 21h
 	
 	call NewLine
@@ -80,12 +80,12 @@ inp:
 	call NewLine
 	call NewLine
 	
-	mov esi, offset firstNum
+	mov esi, offset string_input
 	
 	; after executing of next line number as int must be in eax
 	call StringToNumber
 		
-	mov firstNumInt, eax
+	mov integer_value, eax
 	
 	cmp ch, 1
 	je .printMinus
@@ -99,7 +99,7 @@ inp:
 			
 	.goNext:
 		
-		mov eax, firstNumInt
+		mov eax, integer_value
 		
 		call PrintNumber
 		
@@ -120,82 +120,85 @@ inp:
 	NewLine endp
 	
 	WaitForKeypress proc
-		mov ah, 00      
+		mov ah, 00      	
 		int 16h
    
 		ret
 	WaitForKeypress endp
 		
 	StringToNumber proc
-			xor eax, eax ; zero a "result so far"
-			xor edx, edx
-			
-			cmp byte ptr [esi], '-'
-			je .negative
-			mov ch, 0
-			jmp .convert
-			
-		.negative:
-			mov ch, 1
-			inc esi
-			
-		.convert:
-			mov al, [esi]
-			sub al, '0'
-			
-			movzx eax, al
-			mov ebx, 10
-			
-		.next: 
-			inc esi
-			cmp byte ptr[esi], '$'
-			je .done
+		xor eax, eax 						; zero a "result so far"
 		
-			mul ebx
-			mov dl, [esi]
-			sub dl, '0'
-			
-			movzx edx, dl			
-			
-			add eax, edx
-			jmp .next
-			
-		.done:
-			sub eax, 221
+		cmp byte ptr [esi], '-'				; if first char is "minus"-symbol
+		je .negative
+		mov ch, 0
+		jmp .convert
 		
-			xor edx, edx
-			mov ebx, 10
-			div ebx
+	.negative:
+		mov ch, 1							; set our "sign" flag to 1
+		inc esi								; i++ 
 		
-			ret
+	.convert:
+		mov al, [esi]						; al = esi [ i ] 
+		sub al, '0'							; get real integer value of char
+		
+		movzx eax, al						; move with zero extend because of moving from 16bit to 32bit
+		mov ebx, 10							; get ready for multiplying
+		
+	.next: 
+		inc esi								; i++
+		cmp byte ptr[esi], '$'				; check if we are on end of the string
+		je .done							; if true - done
+	
+		mul ebx								; eax *= 10
+		mov dl, [esi]						; dl = esi[ i ]
+		sub dl, '0'							; get real integer value of char
+				
+		movzx edx, dl						; move with zero extend because of moving from 16bit to 32bit
+		
+		add eax, edx						; adding value we get to result
+		jmp .next							; continue
+		
+	.done:
+		sub eax, 221						; fixme: need to remove magic number
+	
+		xor edx, edx						; zero a edx for correct dividing
+		mov ebx, 10							; ebx = 10
+		div ebx								; eax /= 10
+		
+		ret									; return
 	StringToNumber endp
 	
+	
+
 	PrintNumber proc
-		mov cx, 0
-		mov ebx, 10
+		mov cx, 0							; i = 0
+		mov ebx, 10							; ebx = 10
 		
 	.loopr:
-		xor edx, edx
+		xor edx, edx						; edx = 0. dividing routine
 		
-		div ebx
-		add dl, '0'
-		push dx 
+		div ebx								; eax /= ebx. we will get remainder in dx
+		add dl, '0'							; adding '0' int value to lower part of dx
+		push dx 							; push into stack because of wish to get correct direction of number :)
 		
-		inc cx
-		cmp eax, 0
-		jnz .loopr
+		inc cx								; i++
+		cmp eax, 0							; if eax is 0
+		jnz .loopr							; if not zero we are going to loop again
 	
-		mov ah, 2h
+		mov ah, 2h							; write char interruption
 		
 	.print:
-		pop dx
-		int 21h
+		pop dx								; get last pushed value into stack
+		int 21h								; write dx to console
 		
-		dec cx
-		jnz .print
+		dec cx								; i--
+		jnz .print							; if cx != 0 then go to print loop again
 
-		ret
+		ret									; return 
 	PrintNumber endp
+	
+	
 	
 	Finish proc 
 		mov ah, 4ch    
