@@ -8,20 +8,20 @@
 	prompt_this_a_string db "This is your string", "$"
 	prompt_this_a_number db "This is your number", "$"
 
+	;char
 	char_newline db 10, "$"
 	char_carriage_return db 13, "$"
 	char_minus db "-", "$"
 
 	;util
 	firstNum db ?
-	end_of_string db '$'
-
 	firstNumInt dd ?
 
 .code
 
 ; interruptions:
 ; 01h - read a symbol
+; 02h - write a symbol
 ; 09h - write out a string
 
 start:
@@ -29,8 +29,6 @@ start:
 	.386
 	mov ax, @data
 	mov ds, ax
-	
-	; main part
 	
 	; printing out the prompt
 	mov ah, 09h
@@ -83,6 +81,7 @@ inp:
 	call NewLine
 	
 	mov esi, offset firstNum
+	
 	; after executing of next line number as int must be in eax
 	call StringToNumber
 		
@@ -106,7 +105,8 @@ inp:
 		
 		; deinitial routine
 		call WaitForKeypress
-	
+		
+		call Finish
 	
 	NewLine proc
 		mov dx, offset char_newline
@@ -122,10 +122,7 @@ inp:
 	WaitForKeypress proc
 		mov ah, 00      
 		int 16h
-    
-		mov ah, 4ch    
-		mov al, 00
-		int 21h
+   
 		ret
 	WaitForKeypress endp
 		
@@ -199,5 +196,13 @@ inp:
 
 		ret
 	PrintNumber endp
+	
+	Finish proc 
+		mov ah, 4ch    
+		mov al, 00
+		int 21h
+		
+		ret
+	Finish endp
 
 end start
