@@ -87,7 +87,6 @@ inp:
 	call StringToNumber
 		
 	mov firstNumInt, eax
-	sub firstNumInt, 221
 	
 	cmp ch, 1
 	je .printMinus
@@ -102,7 +101,7 @@ inp:
 	.goNext:
 		
 		mov eax, firstNumInt
-	
+		
 		call PrintNumber
 		
 		; deinitial routine
@@ -165,6 +164,12 @@ inp:
 			jmp .next
 			
 		.done:
+			sub eax, 221
+		
+			xor edx, edx
+			mov ebx, 10
+			div ebx
+		
 			ret
 	StringToNumber endp
 	
